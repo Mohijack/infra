@@ -25,8 +25,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/acme.json:/letsencrypt/acme.json
     networks:
-      traefik:
-        ipv4_address: 172.20.0.2
+      - traefik
     labels:
       - "io.portainer.stack.namespace=infra"
 
@@ -40,8 +39,7 @@ services:
       - ./bind9/named.conf.options:/etc/bind/named.conf.options
       - ./bind9/zones:/etc/bind/zones
     networks:
-      traefik:
-        ipv4_address: 172.20.0.10
+      - traefik
     labels:
       - "io.portainer.stack.namespace=infra"
 
@@ -61,12 +59,8 @@ services:
       - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
       - "io.portainer.stack.namespace=infra"
     networks:
-      traefik:
-        ipv4_address: 172.20.0.20
+      - traefik
 
 networks:
   traefik:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
