@@ -2,7 +2,7 @@ services:
   bind9:
     image: internetsystemsconsortium/bind9:9.18
     container_name: bind9
-    command: named -g -c /etc/bind/named.conf
+    command: -c /etc/bind/named.conf
     ports:
       - "5353:53/udp"
       - "5353:53/tcp"
