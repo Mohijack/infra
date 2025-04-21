@@ -1,0 +1,16 @@
+services:
+  bind9:
+    image: internetsystemsconsortium/bind9:9.16
+    container_name: bind9
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ./bind9/named.conf.options:/etc/bind/named.conf.options
+      - ./bind9/zones:/etc/bind/zones
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
