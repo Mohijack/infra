@@ -55,7 +55,7 @@ services:
       - db
     entrypoint: ""
     command: >
-      server
+      python manage.py runserver 0.0.0.0:9000
       --database-url=postgresql://authentik:authentikpass@db:5432/authentik
     environment:
       AUTHENTIK_SECRET_KEY: supersecretkey
@@ -70,6 +70,7 @@ services:
       - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
     networks:
       - internal
+
 
 
   authentik-worker:
