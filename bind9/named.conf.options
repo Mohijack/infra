@@ -1,0 +1,21 @@
+options {
+    directory "/var/cache/bind";
+
+    recursion yes;
+    allow-query { any; };
+    listen-on { any; };
+    listen-on-v6 { any; };
+
+    forwarders {
+        1.1.1.1;
+        8.8.8.8;
+    };
+
+    dnssec-validation auto;
+
+    auth-nxdomain no;
+};
+zone "internal" {
+    type master;
+    file "/etc/bind/zones/db.internal";
+};
