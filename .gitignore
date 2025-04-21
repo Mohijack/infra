@@ -3,7 +3,7 @@
 .env.*
 
 # Zertifikatsspeicher
-traefik/acme.json
+
 
 # Docker generiert Dateien
 **/.DS_Store
