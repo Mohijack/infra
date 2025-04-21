@@ -79,7 +79,7 @@ services:
     container_name: authentik-worker
     entrypoint: ""
     command: >
-      worker
+      python manage.py worker
       --database-url=postgresql://authentik:authentikpass@db:5432/authentik
     depends_on:
       - db
@@ -87,6 +87,7 @@ services:
       AUTHENTIK_SECRET_KEY: supersecretkey
     networks:
       - internal
+
 
 
 networks:
