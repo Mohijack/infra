@@ -1,0 +1,74 @@
+version: '3.9'
+
+x-portainer:
+  deploy:
+    labels:
+      - "io.portainer.stack.namespace=infra"
+
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    command:
+      - --api.dashboard=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.email=${EMAIL}
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+    environment:
+      - CF_API_EMAIL=${EMAIL}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/acme.json:/letsencrypt/acme.json
+    networks:
+      traefik:
+        ipv4_address: 172.20.0.2
+    labels:
+      - "io.portainer.stack.namespace=infra"
+
+  bind9:
+    image: internetsystemsconsortium/bind9:9.16
+    container_name: bind9
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ./bind9/named.conf.options:/etc/bind/named.conf.options
+      - ./bind9/zones:/etc/bind/zones
+    networks:
+      traefik:
+        ipv4_address: 172.20.0.10
+    labels:
+      - "io.portainer.stack.namespace=infra"
+
+  authentik:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik
+    environment:
+      AUTHENTIK_SECRET_KEY: "super-secret-key"
+      AUTHENTIK_EMAIL__HOST: "smtp.example.com"
+      AUTHENTIK_EMAIL__PORT: 587
+      AUTHENTIK_EMAIL__USERNAME: "user@example.com"
+      AUTHENTIK_EMAIL__PASSWORD: "your-email-password"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.authentik.entrypoints=websecure"
+      - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+      - "io.portainer.stack.namespace=infra"
+    networks:
+      traefik:
+        ipv4_address: 172.20.0.20
+
+networks:
+  traefik:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
