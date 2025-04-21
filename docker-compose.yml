@@ -78,7 +78,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@authentik-db:5432/${POSTGRES_DB}
     depends_on:
       - authentik-db
-    networks:      - traefik
+    networks:
+      - traefik
 
 networks:
   traefik:
