@@ -1,4 +1,4 @@
-zone "internal" {
+zone "internal" IN {
     type master;
-    file "/etc/bind/zones/db.internal";
+    file "/var/lib/bind/db.internal";
 };

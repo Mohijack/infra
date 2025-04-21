@@ -1,3 +1,76 @@
+# PowerShell-Skript: create-infra-folders.ps1
+# Erstellt die Ordnerstruktur & alle Konfigdateien für vollständigen Stack mit .env-Unterstützung
+
+$root = "infra"
+
+# Ordnerstruktur
+$folders = @(
+    "$root/bind9/config",
+    "$root/bind9/zones",
+    "$root/bind9/cache",
+    "$root/traefik",
+    "$root/volumes"
+)
+
+foreach ($folder in $folders) {
+    if (-not (Test-Path $folder)) {
+        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+    }
+}
+
+# Datei: named.conf
+@'
+include "/etc/bind/named.conf.options";
+include "/etc/bind/named.conf.local";
+'@ | Set-Content "$root/bind9/config/named.conf"
+
+# Datei: named.conf.options
+@'
+options {
+    directory "/var/cache/bind";
+    listen-on port 53 { any; };
+    listen-on-v6 { none; };
+    allow-query { any; };
+    recursion yes;
+    dnssec-validation auto;
+    auth-nxdomain no;
+    minimal-responses yes;
+};
+'@ | Set-Content "$root/bind9/config/named.conf.options"
+
+# Datei: named.conf.local
+@'
+zone "internal" IN {
+    type master;
+    file "/var/lib/bind/db.internal";
+};
+'@ | Set-Content "$root/bind9/config/named.conf.local"
+
+# Datei: db.internal
+@'
+$TTL 86400
+@   IN  SOA ns.internal. admin.internal. (
+        2025042101 ; Serial
+        3600       ; Refresh
+        1800       ; Retry
+        604800     ; Expire
+        86400 )    ; Minimum TTL
+
+@       IN  NS      ns.internal.
+ns      IN  A       127.0.0.1
+www     IN  A       192.168.100.10
+auth    IN  A       192.168.100.20
+'@ | Set-Content "$root/bind9/zones/db.internal"
+
+# Datei: acme.json mit korrekten Rechten (leere Datei, Traefik füllt selbst)
+$acmePath = "$root/traefik/acme.json"
+if (-not (Test-Path $acmePath)) {
+    New-Item -ItemType File -Path $acmePath -Force | Out-Null
+}
+# Windows unterstützt chmod nicht direkt, aber Traefik kann schreiben, solange Volume stimmt
+
+# docker-compose Datei mit ENV-Variablen
+@'
 version: "3.8"
 
 services:
@@ -88,3 +161,25 @@ networks:
 
 volumes:
   db_data:
+'@ | Set-Content "$root/docker-compose.yml"
+
+# Datei: .env.example
+@'
+EMAIL=your-email@example.com
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+CF_API_EMAIL=your-cloudflare-email
+
+DOMAIN=example.com
+
+POSTGRES_USER=authentik
+POSTGRES_PASSWORD=authentikpass
+POSTGRES_DB=authentik
+
+AUTHENTIK_SECRET_KEY=supersecretkey
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=mail@example.com
+SMTP_PASSWORD=mailpassword
+'@ | Set-Content "$root/.env.example"
+
+Write-Host "✅ Kompletter Infrastrukturstack inkl. .env-Unterstützung erstellt unter: $root" -ForegroundColor Green

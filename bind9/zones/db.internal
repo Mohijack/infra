@@ -1,0 +1,12 @@
+$TTL 86400
+@   IN  SOA ns.internal. admin.internal. (
+        2025042101 ; Serial
+        3600       ; Refresh
+        1800       ; Retry
+        604800     ; Expire
+        86400 )    ; Minimum TTL
+
+@       IN  NS      ns.internal.
+ns      IN  A       127.0.0.1
+www     IN  A       192.168.100.10
+auth    IN  A       192.168.100.20
