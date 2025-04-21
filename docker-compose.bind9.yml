@@ -1,6 +1,6 @@
 services:
   bind9:
-    image: internetsystemsconsortium/bind9:9.16
+    image: ubuntu/bind9:9.18-22.04_beta
     container_name: bind9
     ports:
       - "53:53/udp"
