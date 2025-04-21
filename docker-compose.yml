@@ -58,14 +58,27 @@ services:
       AUTHENTIK_EMAIL__PORT: ${SMTP_PORT}
       AUTHENTIK_EMAIL__USERNAME: ${SMTP_USER}
       AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@authentik-db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@authentik-db:5432/${POSTGRES_DB}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
       - "traefik.http.routers.authentik.entrypoints=websecure"
       - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+    depends_on:
+      - authentik-db
     networks:
       - traefik
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-worker
+    command: worker
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@authentik-db:5432/${POSTGRES_DB}
+    depends_on:
+      - authentik-db
+    networks:      - traefik
 
 networks:
   traefik:
