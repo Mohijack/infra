@@ -2,8 +2,13 @@ services:
   bind9:
     image: ubuntu/bind9:9.18-22.04_beta
     container_name: bind9
+    ports:
+      - "5353:53/udp"
+      - "5353:53/tcp"
     volumes:
-      - ./bind9/named.conf.options:/etc/bind/named.conf.options
+      - type: bind
+        source: ./bind9/named.conf.options
+        target: /etc/bind/named.conf.options
       - ./bind9/zones:/etc/bind/zones
     networks:
       - traefik
