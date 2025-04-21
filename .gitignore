@@ -1,0 +1,13 @@
+# Umgebungsvariablen
+.env
+.env.*
+
+# Zertifikatsspeicher
+traefik/acme.json
+
+# Docker generiert Dateien
+**/.DS_Store
+**/Thumbs.db
+
+# Logdateien
+*.log

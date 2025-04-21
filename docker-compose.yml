@@ -49,11 +49,11 @@ services:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik
     environment:
-      AUTHENTIK_SECRET_KEY: "super-secret-key"
-      AUTHENTIK_EMAIL__HOST: "smtp.example.com"
-      AUTHENTIK_EMAIL__PORT: 587
-      AUTHENTIK_EMAIL__USERNAME: "user@example.com"
-      AUTHENTIK_EMAIL__PASSWORD: "your-email-password"
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_EMAIL__HOST: ${SMTP_HOST}
+      AUTHENTIK_EMAIL__PORT: ${SMTP_PORT}
+      AUTHENTIK_EMAIL__USERNAME: ${SMTP_USER}
+      AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
