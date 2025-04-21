@@ -6,10 +6,11 @@ services:
     ports:
       - "5353:53/udp"
       - "5353:53/tcp"
-    volumes:
+      volumes:
       - ./bind9/config:/data/bind
       - ./bind9/zones:/var/lib/bind
       - ./bind9/cache:/var/cache/bind
+      - /tmp/test:/data/test 
     networks:
       - traefik
 
