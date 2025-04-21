@@ -53,12 +53,9 @@ services:
     container_name: authentik
     depends_on:
       - db
-    entrypoint: ""
-    command: >
-      python manage.py runserver 0.0.0.0:9000
-      --database-url=postgresql://authentik:authentikpass@db:5432/authentik
     environment:
       AUTHENTIK_SECRET_KEY: supersecretkey
+      DATABASE_URL: postgresql://authentik:authentikpass@db:5432/authentik
       AUTHENTIK_EMAIL__HOST: smtp.example.com
       AUTHENTIK_EMAIL__PORT: 587
       AUTHENTIK_EMAIL__USERNAME: mail@example.com
@@ -71,19 +68,19 @@ services:
     networks:
       - internal
 
+      - internal
+
 
 
   authentik-worker:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik-worker
-    entrypoint: ""
-    command: >
-      python manage.py worker
-      --database-url=postgresql://authentik:authentikpass@db:5432/authentik
+    command: worker
     depends_on:
       - db
     environment:
       AUTHENTIK_SECRET_KEY: supersecretkey
+      DATABASE_URL: postgresql://authentik:authentikpass@db:5432/authentik
     networks:
       - internal
 
