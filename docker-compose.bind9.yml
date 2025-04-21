@@ -6,7 +6,10 @@ services:
       - "5353:53/udp"
       - "5353:53/tcp"
     volumes:
-      - ./bind9:/etc/bind
+      - ./bind9/named.conf:/etc/bind/named.conf
+      - ./bind9/named.conf.options:/etc/bind/named.conf.options
+      - ./bind9/named.conf.local:/etc/bind/named.conf.local
+      - ./bind9/zones:/etc/bind/zones
     networks:
       - traefik
 
