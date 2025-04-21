@@ -1,0 +1,59 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    command:
+      - --api.dashboard=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.email=${EMAIL}
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+    environment:
+      - CF_API_EMAIL=${EMAIL}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/acme.json:/letsencrypt/acme.json
+    networks:
+      - traefik
+
+  bind9:
+    image: internetsystemsconsortium/bind9:9.18
+    container_name: bind9
+    command: -g -c /data/bind/named.conf
+    ports:
+      - "5353:53/udp"
+      - "5353:53/tcp"
+    volumes:
+      - ./bind9/config:/data/bind
+      - ./bind9/zones:/var/lib/bind
+      - ./bind9/cache:/var/cache/bind
+    networks:
+      - traefik
+
+  authentik:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik
+    environment:
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_EMAIL__HOST: ${SMTP_HOST}
+      AUTHENTIK_EMAIL__PORT: ${SMTP_PORT}
+      AUTHENTIK_EMAIL__USERNAME: ${SMTP_USER}
+      AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.authentik.entrypoints=websecure"
+      - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    driver: bridge
+    name: traefik
