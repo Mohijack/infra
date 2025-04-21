@@ -68,9 +68,6 @@ services:
     networks:
       - internal
 
-      - internal
-
-
 
   authentik-worker:
     image: ghcr.io/goauthentik/server:latest
