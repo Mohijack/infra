@@ -36,6 +36,19 @@ services:
     networks:
       - traefik
 
+  authentik-db:
+    image: postgres:15
+    container_name: authentik-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - authentik-db-data:/var/lib/postgresql/data
+    networks:
+      - traefik
+
   authentik:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik
@@ -45,6 +58,7 @@ services:
       AUTHENTIK_EMAIL__PORT: ${SMTP_PORT}
       AUTHENTIK_EMAIL__USERNAME: ${SMTP_USER}
       AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@authentik-db:5432/${POSTGRES_DB}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
@@ -57,3 +71,6 @@ networks:
   traefik:
     driver: bridge
     name: traefik
+
+volumes:
+  authentik-db-data:
