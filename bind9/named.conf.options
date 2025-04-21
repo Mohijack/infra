@@ -12,10 +12,5 @@ options {
     };
 
     dnssec-validation auto;
-
     auth-nxdomain no;
-};
-zone "internal" {
-    type master;
-    file "/etc/bind/zones/db.internal";
 };
