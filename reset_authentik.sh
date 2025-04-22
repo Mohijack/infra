@@ -18,14 +18,22 @@ docker volume rm ${STACK_NAME}_authentik_custom_templates
 echo "Starte den Stack neu..."
 docker-compose up -d
 
+# Lese Umgebungsvariablen aus der .env-Datei
+source .env
+
 echo "Fertig! Authentik wurde zurückgesetzt und neu gestartet."
 echo ""
 echo "WICHTIG: Warten Sie etwa 1-2 Minuten, bis alle Dienste vollständig gestartet sind."
 echo ""
-echo "Navigieren Sie dann zur Ersteinrichtungs-URL, um einen neuen Admin-Benutzer zu erstellen:"
+echo "Anmeldedaten für Authentik:"
+echo "URL: https://auth.${DOMAIN}"
+echo "Benutzername: ${AUTHENTIK_BOOTSTRAP_USERNAME}"
+echo "Passwort: ${AUTHENTIK_BOOTSTRAP_PASSWORD}"
+echo ""
+echo "Falls die automatische Anmeldung nicht funktioniert, navigieren Sie zur Ersteinrichtungs-URL:"
 echo "http://192.168.200.84:9001/if/flow/initial-setup/"
 echo "oder"
-echo "https://auth.dasilvafelix.de/if/flow/initial-setup/"
+echo "https://auth.${DOMAIN}/if/flow/initial-setup/"
 echo ""
 echo "HINWEIS: Achten Sie darauf, dass die URL mit einem Schrägstrich (/) endet,"
 echo "         sonst erhalten Sie einen 'Not Found'-Fehler."

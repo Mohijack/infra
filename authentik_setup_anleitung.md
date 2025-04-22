@@ -1,47 +1,49 @@
-# Authentik Initial Setup Anleitung
+# Authentik Setup Anleitung
 
-Diese Anleitung führt Sie durch den Prozess der Ersteinrichtung von Authentik nach dem Zurücksetzen der Datenbank.
+Diese Anleitung führt Sie durch den Prozess der Einrichtung und Anmeldung bei Authentik nach dem Zurücksetzen der Datenbank.
 
 ## Voraussetzungen
 
 - Authentik wurde mit dem `reset_authentik.sh`-Skript zurückgesetzt und neu gestartet
 - Alle Dienste sind vollständig hochgefahren (warten Sie etwa 1-2 Minuten nach dem Neustart)
 
-## Schritt 1: Zugriff auf die Ersteinrichtungs-URL
+## Schritt 1: Anmeldung bei Authentik
 
-Öffnen Sie einen Webbrowser und navigieren Sie zu einer der folgenden URLs:
+Öffnen Sie einen Webbrowser und navigieren Sie zu:
 
-- `http://192.168.200.84:9001/if/flow/initial-setup/`
-- `https://auth.dasilvafelix.de/if/flow/initial-setup/`
+- `https://auth.dasilvafelix.de`
 
-**WICHTIG**: Achten Sie darauf, dass die URL mit einem Schrägstrich (/) endet, sonst erhalten Sie einen "Not Found"-Fehler.
+Melden Sie sich mit den folgenden Anmeldedaten an:
 
-## Schritt 2: Erstellen eines Admin-Benutzers
+- Benutzername: `admin` (oder der in der `.env`-Datei konfigurierte Wert für `AUTHENTIK_BOOTSTRAP_USERNAME`)
+- Passwort: `Admin123456` (oder der in der `.env`-Datei konfigurierte Wert für `AUTHENTIK_BOOTSTRAP_PASSWORD`)
 
-Auf der Ersteinrichtungsseite werden Sie aufgefordert, einen Admin-Benutzer zu erstellen:
+## Alternative: Manuelle Ersteinrichtung
 
-1. Geben Sie einen Benutzernamen ein (standardmäßig `akadmin`, Sie können diesen aber ändern)
-2. Geben Sie eine E-Mail-Adresse ein (z.B. `admin@dasilvafelix.de`)
-3. Setzen Sie ein sicheres Passwort (verwenden Sie ein starkes Passwort, das Sie sich merken können)
-4. Bestätigen Sie das Passwort
-5. Klicken Sie auf "Erstellen"
+Falls die automatische Anmeldung nicht funktioniert, können Sie die Ersteinrichtung manuell durchführen:
 
-## Schritt 3: Anmeldung
+1. Öffnen Sie einen Webbrowser und navigieren Sie zu einer der folgenden URLs:
+   - `http://192.168.200.84:9001/if/flow/initial-setup/`
+   - `https://auth.dasilvafelix.de/if/flow/initial-setup/`
 
-Nach der Erstellung des Admin-Benutzers werden Sie automatisch zur Anmeldeseite weitergeleitet:
+2. **WICHTIG**: Achten Sie darauf, dass die URL mit einem Schrägstrich (/) endet, sonst erhalten Sie einen "Not Found"-Fehler.
 
-1. Geben Sie den Benutzernamen ein, den Sie gerade erstellt haben
-2. Geben Sie das Passwort ein, das Sie gerade festgelegt haben
-3. Klicken Sie auf "Anmelden"
+3. Auf der Ersteinrichtungsseite werden Sie aufgefordert, einen Admin-Benutzer zu erstellen:
+   - Geben Sie einen Benutzernamen ein (z.B. `admin`)
+   - Geben Sie eine E-Mail-Adresse ein (z.B. `admin@dasilvafelix.de`)
+   - Setzen Sie ein sicheres Passwort
+   - Bestätigen Sie das Passwort
+   - Klicken Sie auf "Erstellen"
 
-## Schritt 4: Konfiguration von Authentik
+## Schritt 2: Konfiguration von Authentik
 
 Nach der erfolgreichen Anmeldung können Sie Authentik nach Ihren Bedürfnissen konfigurieren:
 
-1. Erstellen Sie weitere Benutzer
-2. Konfigurieren Sie Anwendungen
-3. Richten Sie Authentifizierungsquellen ein
-4. Passen Sie Flows und Stages an
+1. Ändern Sie das Passwort des Admin-Benutzers (empfohlen)
+2. Erstellen Sie weitere Benutzer
+3. Konfigurieren Sie Anwendungen
+4. Richten Sie Authentifizierungsquellen ein
+5. Passen Sie Flows und Stages an
 
 ## Fehlerbehebung
 
