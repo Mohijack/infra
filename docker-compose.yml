@@ -1,16 +1,15 @@
 services:
   bind9:
-    # Verwende ein anderes bind9-Image, das möglicherweise besser mit Windows funktioniert
-    image: ubuntu/bind9:latest
+    # Verwende ein einfacheres DNS-Image als Alternative zu bind9
+    image: cytopia/bind:0.15
     container_name: bind9
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
-      - BIND9_USER=root
-    volumes:
-      - ./bind9/config:/etc/bind
-      - ./bind9/zones:/var/lib/bind
-      - ./bind9/cache:/var/cache/bind
+      - DNS_FORWARDER=1.1.1.1,8.8.8.8
+      # Definiere eine einfache DNS-Zone direkt in der Umgebungsvariable
+      # Verwende die IP-Adresse des Proxmox-Hosts oder die IP der Portainer-VM/Container
+      - DNS_A=auth.dasilvafelix.de=${SERVER_IP},traefik.dasilvafelix.de=${SERVER_IP}
     ports:
       - "1053:53/udp"
       - "1053:53/tcp"
@@ -43,8 +42,10 @@ services:
       - --log.level=DEBUG
       # Zusätzliche Konfiguration für Cloudflare
       - --providers.docker.network=traefik
+      # Spezifische Konfiguration für Proxmox-Umgebung
       - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.${DOMAIN}`)
       - --entrypoints.websecure.forwardedHeaders.insecure=true
+      - --serversTransport.insecureSkipVerify=true
     environment:
       - CLOUDFLARE_EMAIL=${CF_API_EMAIL}
       - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
@@ -174,9 +175,5 @@ volumes:
 networks:
   traefik:
     driver: bridge
-    # Explizite Konfiguration für bessere Kompatibilität mit Portainer
-    # Aber ohne feste IP-Adressen, die Probleme verursachen können
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/16
+    # Einfachere Netzwerkkonfiguration für Proxmox-Umgebung
+    # Keine explizite Subnet-Konfiguration, um Konflikte zu vermeiden
