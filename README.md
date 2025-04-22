@@ -27,12 +27,20 @@ SERVER_IP=192.168.120.84
 
 ### 2. Anpassen der DNS-Konfiguration
 
-Die DNS-Konfiguration ist bereits in der Docker-Compose-Datei enthalten und verwendet die Umgebungsvariablen aus der `.env`-Datei. Sie können bei Bedarf weitere DNS-Einträge in der `DNSMASQ_OPTS`-Umgebungsvariable des DNS-Containers hinzufügen:
+Die DNS-Konfiguration ist bereits in der Docker-Compose-Datei enthalten und verwendet die Umgebungsvariablen aus der `.env`-Datei. Sie können bei Bedarf weitere DNS-Einträge in der `command`-Sektion des DNS-Containers hinzufügen:
 
 ```yaml
-environment:
-  - TZ=Europe/Berlin
-  - DNSMASQ_OPTS=--log-queries --log-facility=- --cache-size=1000 --server=8.8.8.8 --server=8.8.4.4 --address=/traefik.${DOMAIN}/${SERVER_IP} --address=/auth.${DOMAIN}/${SERVER_IP} --address=/dns.${DOMAIN}/${SERVER_IP}
+command: |
+  --log-queries
+  --log-facility=-
+  --cache-size=1000
+  --server=8.8.8.8
+  --server=8.8.4.4
+  --address=/traefik.${DOMAIN}/${SERVER_IP}
+  --address=/auth.${DOMAIN}/${SERVER_IP}
+  --address=/dns.${DOMAIN}/${SERVER_IP}
+  --webserver
+  --webserver-port=8080
   # Fügen Sie hier weitere Optionen hinzu
   # z.B. --address=/neuer-dienst.${DOMAIN}/${SERVER_IP}
 ```

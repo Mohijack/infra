@@ -209,9 +209,9 @@ services:
     networks:
       - app_network
 
-  # DNS-Server mit Weboberfläche
+  # DNS-Server mit jpillora/dnsmasq
   dns:
-    image: jlesage/dnsmasq
+    image: jpillora/dnsmasq
     container_name: dns
     restart: unless-stopped
     ports:
@@ -219,7 +219,17 @@ services:
       - "5380:8080"
     environment:
       - TZ=Europe/Berlin
-      - DNSMASQ_OPTS=--log-queries --log-facility=- --cache-size=1000 --server=8.8.8.8 --server=8.8.4.4 --address=/traefik.${DOMAIN}/${SERVER_IP} --address=/auth.${DOMAIN}/${SERVER_IP} --address=/dns.${DOMAIN}/${SERVER_IP}
+    command: |
+      --log-queries
+      --log-facility=-
+      --cache-size=1000
+      --server=8.8.8.8
+      --server=8.8.4.4
+      --address=/traefik.${DOMAIN}/${SERVER_IP}
+      --address=/auth.${DOMAIN}/${SERVER_IP}
+      --address=/dns.${DOMAIN}/${SERVER_IP}
+      --webserver
+      --webserver-port=8080
     networks:
       - app_network
     labels:
