@@ -41,7 +41,7 @@ services:
     command:
       # API und Dashboard Konfiguration
       - --api.dashboard=true
-      - --api.insecure=false
+      - --api.insecure=true  # Für Testzwecke aktiviert
 
       # Entrypoints Konfiguration
       - --entrypoints.web.address=:80
@@ -75,6 +75,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"  # Direkter Zugriff auf das Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - traefik_acme:/letsencrypt
@@ -109,6 +110,10 @@ services:
 
       # Anwendung der Middlewares auf das Dashboard
       - "traefik.http.routers.dashboard.middlewares=secureHeaders,cloudflare-headers"
+
+      # Direkter Zugriff auf das Dashboard über Port 8080
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.api.service=api@internal"
 
   db:
     image: postgres:15
