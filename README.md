@@ -1,11 +1,12 @@
-# Automatische Zertifikatsverwaltung mit Traefik und Bind9
+# Infrastruktur-Stack mit Traefik, Authentik und DNS
 
-Diese Konfiguration ermöglicht die automatische Erstellung und Verwaltung von TLS-Zertifikaten für lokale Domains mit Traefik und Bind9 in einer Portainer-Umgebung auf Proxmox.
+Diese Konfiguration ermöglicht die Bereitstellung einer kompletten Infrastruktur mit Traefik als Reverse Proxy, Authentik für die Authentifizierung und dnsmasq für lokale DNS-Auflösung in einer Portainer-Umgebung auf Proxmox.
 
 ## Voraussetzungen
 
 - Portainer auf Proxmox (IP: 192.168.120.84)
 - Docker und Docker Compose
+- Cloudflare-Konto für die Zertifikatsverwaltung
 
 ## Einrichtung
 
@@ -14,18 +15,33 @@ Diese Konfiguration ermöglicht die automatische Erstellung und Verwaltung von T
 Passen Sie die Konfiguration in der `.env`-Datei an:
 
 ```
-# Bind9-Konfiguration für lokale Zertifikate
-BIND_KEY_NAME=bind-key
-BIND_KEY_SECRET=your-key-secret
+# Cloudflare-Konfiguration
+EMAIL=admin@dasilvafelix.de
+CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
+CF_API_EMAIL=your-cloudflare-email
+
+# Domain-Konfiguration
+DOMAIN=dasilvafelix.de
+SERVER_IP=192.168.120.84
 ```
 
-Stellen Sie sicher, dass Sie ein sicheres Geheimnis für `BIND_KEY_SECRET` verwenden.
+### 2. Anpassen der DNS-Konfiguration
 
-### 2. Starten des Stacks in Portainer
+Passen Sie die DNS-Konfiguration in der `dnsmasq.conf`-Datei an:
+
+```
+# Statische DNS-Einträge für lokale Dienste
+address=/traefik.dasilvafelix.de/192.168.120.84
+address=/auth.dasilvafelix.de/192.168.120.84
+address=/dns.dasilvafelix.de/192.168.120.84
+```
+
+### 3. Starten des Stacks in Portainer
 
 1. Laden Sie die Dateien in Ihr Portainer-Verzeichnis hoch:
    - docker-compose.yml
    - .env
+   - dnsmasq.conf
 
 2. Starten Sie den Stack in Portainer:
    - Gehen Sie zu "Stacks" in Portainer
