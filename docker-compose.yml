@@ -100,8 +100,8 @@ services:
       AUTHENTIK_EMAIL__USERNAME: ${SMTP_USER}
       AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
     ports:
-      - "9000:9000"  # HTTP port for Authentik
-      - "9443:9443"  # HTTPS port for Authentik
+      - "9001:9000"  # HTTP port for Authentik
+      - "9444:9443"  # HTTPS port for Authentik
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
