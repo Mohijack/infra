@@ -1,25 +1,4 @@
 services:
-  bind9:
-    # Verwende ein einfacheres DNS-Image als Alternative zu bind9
-    image: cytopia/bind:0.15
-    container_name: bind9
-    restart: unless-stopped
-    environment:
-      - TZ=Europe/Berlin
-      - DNS_FORWARDER=1.1.1.1,8.8.8.8
-      # Definiere eine einfache DNS-Zone direkt in der Umgebungsvariable
-      # Verwende die IP-Adresse des Proxmox-Hosts oder die IP der Portainer-VM/Container
-      - DNS_A=auth.dasilvafelix.de=${SERVER_IP},traefik.dasilvafelix.de=${SERVER_IP}
-    ports:
-      - "1053:53/udp"
-      - "1053:53/tcp"
-    networks:
-      - app_network
-    # Hinzufügen von Labels für bessere Kompatibilität mit Portainer
-    labels:
-      - "traefik.enable=true"
-      # Verwende das Standard-Netzwerk
-      # - "traefik.docker.network=traefik"
 
   # Init-Container für die Initialisierung der acme.json-Datei
   traefik-init:
@@ -303,8 +282,6 @@ services:
     networks:
       - app_network
 
-
-
   # Bind9 DNS-Server
   bind9:
     image: internetsystemsconsortium/bind9:9.18
@@ -367,9 +344,6 @@ services:
       - "traefik.http.routers.bind9.tls.certresolver=local"
       - "traefik.http.services.bind9.loadbalancer.server.port=8080"
       - "traefik.http.routers.bind9.middlewares=secureHeaders,cloudflare-headers"
-
-
-
 volumes:
   db_data:
     driver: local
@@ -379,8 +353,6 @@ volumes:
     driver: local
   traefik_acme:
     driver: local
-
-
   bind9-cache:
     driver: local
   bind9-data:
