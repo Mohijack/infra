@@ -109,7 +109,7 @@ services:
       retries: 5
 
   authentik:
-    image: ghcr.io/goauthentik/server:2023.10.5
+    image: ghcr.io/goauthentik/server:2023.8.3
     container_name: authentik
     restart: unless-stopped
     depends_on:
@@ -160,7 +160,7 @@ services:
       - default
 
   authentik-worker:
-    image: ghcr.io/goauthentik/server:2023.10.5
+    image: ghcr.io/goauthentik/server:2023.8.3
     container_name: authentik-worker
     restart: unless-stopped
     command: worker
