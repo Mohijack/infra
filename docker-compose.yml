@@ -21,14 +21,26 @@ services:
       # Verwende das Standard-Netzwerk
       # - "traefik.docker.network=traefik"
 
+  # Init-Container für die Initialisierung der acme.json-Datei
+  traefik-init:
+    image: alpine:latest
+    container_name: traefik-init
+    restart: "no"
+    volumes:
+      - traefik_acme:/letsencrypt
+    command: sh -c "touch /letsencrypt/acme.json && chmod 600 /letsencrypt/acme.json && echo 'acme.json initialized with permissions 600'"
+    networks:
+      - app_network
+
   traefik:
     image: traefik:v2.10
     container_name: traefik
     restart: unless-stopped
+    depends_on:
+      - traefik-init
     command:
       - --api.dashboard=true
       - --api.insecure=true
-      - --entrypoints.dashboard.address=:8080
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       # HTTP zu HTTPS Umleitung aktivieren
@@ -55,34 +67,21 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Direkter Zugriff auf das Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./traefik/acme.json:/letsencrypt/acme.json
+      - traefik_acme:/letsencrypt
     networks:
       - app_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
-      - "traefik.http.routers.traefik-dashboard.service=api@internal"
-      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
-      # Bei Cloudflare Zero Trust kann die TLS-Konfiguration anders sein
-      - "traefik.http.routers.traefik-dashboard.tls=true"
-      - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
-      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth,cloudflare-headers"
-      # Explizite Konfiguration für das Dashboard
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`) && PathPrefix(`/dashboard`)"
+      # Einfache Konfiguration für das Dashboard
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
-      - "traefik.http.routers.dashboard.middlewares=traefik-auth,cloudflare-headers,dashboard-stripprefix"
-      - "traefik.http.middlewares.dashboard-stripprefix.stripprefix.prefixes=/dashboard"
-      # Direkter Zugriff über Port 8080
-      - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
-      - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.entrypoints=dashboard"
-      - "traefik.http.routers.api.middlewares=traefik-auth"
+      - "traefik.http.routers.dashboard.middlewares=traefik-auth,cloudflare-headers"
+
       # Middleware für Cloudflare-Header
       - "traefik.http.middlewares.cloudflare-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
@@ -216,6 +215,7 @@ volumes:
   db_data:
   authentik_media:
   authentik_custom_templates:
+  traefik_acme:
 
 # Definiere ein explizites Netzwerk für alle Container
 networks:
