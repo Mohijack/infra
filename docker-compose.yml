@@ -96,7 +96,7 @@ services:
 
       # Sicherheits-Middlewares
       - "traefik.http.middlewares.secureHeaders.headers.frameDeny=true"
-      - "traefik.http.middlewares.secureHeaders.headers.sslRedirect=true"
+      # SSLRedirect entfernt, da es veraltet ist und wir bereits eine Entrypoint-Umleitung verwenden
       - "traefik.http.middlewares.secureHeaders.headers.browserXssFilter=true"
       - "traefik.http.middlewares.secureHeaders.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.secureHeaders.headers.forceSTSHeader=true"
