@@ -20,6 +20,7 @@ services:
     restart: unless-stopped
     command:
       - --api.dashboard=true
+      - --api.insecure=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --providers.docker=true
@@ -38,6 +39,14 @@ services:
       - ./traefik/acme.json:/letsencrypt/acme.json
     networks:
       - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
 
   db:
     image: postgres:15
@@ -90,11 +99,15 @@ services:
       AUTHENTIK_EMAIL__PORT: ${SMTP_PORT}
       AUTHENTIK_EMAIL__USERNAME: ${SMTP_USER}
       AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
+    ports:
+      - "9000:9000"  # HTTP port for Authentik
+      - "9443:9443"  # HTTPS port for Authentik
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
       - "traefik.http.routers.authentik.entrypoints=websecure"
       - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+      - "traefik.http.services.authentik.loadbalancer.server.port=9000"
     networks:
       - internal
 
