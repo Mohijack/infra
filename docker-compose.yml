@@ -12,8 +12,7 @@ services:
       - "1053:53/udp"
       - "1053:53/tcp"
     networks:
-      internal:
-        ipv4_address: 172.20.0.2
+      - traefik
 
   traefik:
     image: traefik:latest
@@ -36,7 +35,7 @@ services:
       - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
       - --log.level=DEBUG
       # Zusätzliche Konfiguration für Cloudflare
-      - --providers.docker.network=internal
+      - --providers.docker.network=traefik
       - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.${DOMAIN}`)
       - --entrypoints.websecure.forwardedHeaders.insecure=true
     environment:
@@ -49,8 +48,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/acme.json:/letsencrypt/acme.json
     networks:
-      internal:
-        ipv4_address: 172.20.0.3
+      - traefik
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
@@ -75,8 +73,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
-      internal:
-        ipv4_address: 172.20.0.4
+      - traefik
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -88,8 +85,7 @@ services:
     container_name: authentik-redis
     restart: unless-stopped
     networks:
-      internal:
-        ipv4_address: 172.20.0.5
+      - traefik
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -140,8 +136,7 @@ services:
       - "traefik.http.services.authentik.loadbalancer.server.port=9000"
       - "traefik.http.routers.authentik.middlewares=cloudflare-headers"
     networks:
-      internal:
-        ipv4_address: 172.20.0.6
+      - traefik
 
   authentik-worker:
     image: ghcr.io/goauthentik/server:latest
@@ -162,8 +157,7 @@ services:
       AUTHENTIK_REDIS__HOST: redis
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     networks:
-      internal:
-        ipv4_address: 172.20.0.7
+      - traefik
 
 volumes:
   db_data:
@@ -171,9 +165,5 @@ volumes:
   authentik_custom_templates:
 
 networks:
-  internal:
+  traefik:
     driver: bridge
-    # Explizite Konfiguration für bessere Kompatibilität mit Portainer
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
