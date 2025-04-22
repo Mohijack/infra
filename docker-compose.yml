@@ -2,6 +2,7 @@ services:
   bind9:
     image: internetsystemsconsortium/bind9:9.18
     container_name: bind9
+    restart: unless-stopped
     command: -g -c /etc/bind/named.conf
     volumes:
       - ./bind9/config:/etc/bind
@@ -16,6 +17,7 @@ services:
   traefik:
     image: traefik:latest
     container_name: traefik
+    restart: unless-stopped
     command:
       - --api.dashboard=true
       - --entrypoints.web.address=:80
@@ -23,11 +25,11 @@ services:
       - --providers.docker=true
       - --certificatesresolvers.cloudflare.acme.dnschallenge=true
       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.cloudflare.acme.email=your-email@example.com
+      - --certificatesresolvers.cloudflare.acme.email=${EMAIL}
       - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
     environment:
-      - CF_API_EMAIL=your-cloudflare-email
-      - CF_DNS_API_TOKEN=your-cloudflare-api-token
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
     ports:
       - "80:80"
       - "443:443"
@@ -37,14 +39,14 @@ services:
     networks:
       - internal
 
-  authentik-db:
+  db:
     image: postgres:15
     container_name: authentik-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: authentik
-      POSTGRES_PASSWORD: authentikpass
-      POSTGRES_DB: authentik
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -53,18 +55,19 @@ services:
   authentik:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik
+    restart: unless-stopped
     depends_on:
-      - authentik-db
+      - db
     environment:
-      AUTHENTIK_SECRET_KEY: "supersecretkey"
-      DATABASE_URL: "postgresql://authentik:authentikpass@authentik-db:5432/authentik"
-      AUTHENTIK_EMAIL__HOST: "smtp.example.com"
-      AUTHENTIK_EMAIL__PORT: "587"
-      AUTHENTIK_EMAIL__USERNAME: "mail@example.com"
-      AUTHENTIK_EMAIL__PASSWORD: "mailpassword"
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      AUTHENTIK_EMAIL__HOST: ${SMTP_HOST}
+      AUTHENTIK_EMAIL__PORT: ${SMTP_PORT}
+      AUTHENTIK_EMAIL__USERNAME: ${SMTP_USER}
+      AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.authentik.rule=Host(`auth.example.com`)"
+      - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
       - "traefik.http.routers.authentik.entrypoints=websecure"
       - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
     networks:
@@ -73,12 +76,13 @@ services:
   authentik-worker:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik-worker
+    restart: unless-stopped
     command: worker
     depends_on:
-      - authentik-db
+      - db
     environment:
-      AUTHENTIK_SECRET_KEY: "supersecretkey"
-      DATABASE_URL: "postgresql://authentik:authentikpass@authentik-db:5432/authentik"
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     networks:
       - internal
 
