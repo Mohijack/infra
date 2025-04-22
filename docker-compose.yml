@@ -109,7 +109,7 @@ services:
       retries: 5
 
   authentik:
-    image: ghcr.io/goauthentik/server:2023.8.3
+    image: ghcr.io/goauthentik/server:latest
     container_name: authentik
     restart: unless-stopped
     depends_on:
@@ -139,7 +139,11 @@ services:
       AUTHENTIK_PORT_HTTPS: 9443
       # Wichtig: Setze die korrekte externe URL
       AUTHENTIK_HOST: auth.${DOMAIN}
+      # Bootstrap-Anmeldedaten für die Ersteinrichtung
       AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL}
+      AUTHENTIK_BOOTSTRAP_USERNAME: ${AUTHENTIK_BOOTSTRAP_USERNAME}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
       AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
     ports:
@@ -161,7 +165,7 @@ services:
       - app_network
 
   authentik-worker:
-    image: ghcr.io/goauthentik/server:2023.8.3
+    image: ghcr.io/goauthentik/server:latest
     container_name: authentik-worker
     restart: unless-stopped
     command: worker
@@ -185,6 +189,10 @@ services:
       AUTHENTIK_REDIS__PORT: 6379
       # Vollständige Datenbank-URL
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # Bootstrap-Anmeldedaten für die Ersteinrichtung
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
+      AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL}
+      AUTHENTIK_BOOTSTRAP_USERNAME: ${AUTHENTIK_BOOTSTRAP_USERNAME}
     networks:
       - app_network
 
