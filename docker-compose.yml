@@ -39,37 +39,42 @@ services:
     depends_on:
       - traefik-init
     command:
+      # API und Dashboard Konfiguration
       - --api.dashboard=true
-      # Aktiviere den unsicheren Modus für Testzwecke
-      - --api.insecure=true
+      - --api.insecure=false
+
+      # Entrypoints Konfiguration
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --entrypoints.dashboard.address=:8081
-      # HTTP zu HTTPS Umleitung aktivieren
+
+      # HTTP zu HTTPS Umleitung
       - --entrypoints.web.http.redirections.entryPoint.to=websecure
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
+
+      # Provider Konfiguration
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
+      - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.${DOMAIN}`)
+
+      # Zertifikate und TLS Konfiguration
       - --certificatesresolvers.cloudflare.acme.dnschallenge=true
       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=90
       - --certificatesresolvers.cloudflare.acme.email=${EMAIL}
       - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
-      - --log.level=DEBUG
-      # Zusätzliche Konfiguration für Cloudflare
-      # Verwende das Standard-Netzwerk
-      # - --providers.docker.network=traefik
-      # Spezifische Konfiguration für Proxmox-Umgebung
-      - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.${DOMAIN}`)
+
+      # Sicherheits- und Weiterleitungskonfiguration
       - --entrypoints.websecure.forwardedHeaders.insecure=true
       - --serversTransport.insecureSkipVerify=true
+
+      # Logging
+      - --log.level=INFO
     environment:
       - CLOUDFLARE_EMAIL=${CF_API_EMAIL}
       - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
     ports:
       - "80:80"
       - "443:443"
-      - "8081:8081"  # Direkter Zugriff auf das Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - traefik_acme:/letsencrypt
@@ -77,25 +82,33 @@ services:
       - app_network
     labels:
       - "traefik.enable=true"
-      # Konfiguration für das Dashboard gemäß offizieller Dokumentation
-      - "traefik.http.routers.dashboard-secure.rule=Host(`traefik.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
-      - "traefik.http.routers.dashboard-secure.service=api@internal"
-      - "traefik.http.routers.dashboard-secure.entrypoints=websecure"
-      - "traefik.http.routers.dashboard-secure.tls=true"
-      - "traefik.http.routers.dashboard-secure.tls.certresolver=cloudflare"
-      - "traefik.http.routers.dashboard-secure.middlewares=traefik-auth"
 
-      # Konfiguration für das Dashboard über den unsicheren Port
-      - "traefik.http.routers.dashboard-insecure.rule=Host(`traefik.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
-      - "traefik.http.routers.dashboard-insecure.service=api@internal"
-      - "traefik.http.routers.dashboard-insecure.entrypoints=dashboard"
+      # Dashboard-Konfiguration gemäß offizieller Dokumentation
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
+
+      # Wildcard-Zertifikat für alle Subdomains
+      - "traefik.http.routers.dashboard.tls.domains[0].main=*.${DOMAIN}"
+      - "traefik.http.routers.dashboard.tls.domains[0].sans=${DOMAIN}"
+
+      # Sicherheits-Middlewares
+      - "traefik.http.middlewares.secureHeaders.headers.frameDeny=true"
+      - "traefik.http.middlewares.secureHeaders.headers.sslRedirect=true"
+      - "traefik.http.middlewares.secureHeaders.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.secureHeaders.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.secureHeaders.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.secureHeaders.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.secureHeaders.headers.stsPreload=true"
+      - "traefik.http.middlewares.secureHeaders.headers.stsSeconds=31536000"
 
       # Middleware für Cloudflare-Header
       - "traefik.http.middlewares.cloudflare-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
 
-      # Neues BasicAuth-Middleware mit einfachem Passwort (admin:admin)
-      # Dieses Hash entspricht dem Passwort 'admin'
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$2y$$05$$pXxMRQoHDUJRRUFQb3dVR.Ex/4TA0Zkz8RVBBDnZ1tHNtcZC0FnFC"
+      # Anwendung der Middlewares auf das Dashboard
+      - "traefik.http.routers.dashboard.middlewares=secureHeaders,cloudflare-headers"
 
   db:
     image: postgres:15
@@ -185,7 +198,7 @@ services:
       - "traefik.http.routers.authentik.tls=true"
       - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
       - "traefik.http.services.authentik.loadbalancer.server.port=9000"
-      - "traefik.http.routers.authentik.middlewares=cloudflare-headers"
+      - "traefik.http.routers.authentik.middlewares=secureHeaders,cloudflare-headers"
     networks:
       - app_network
 
@@ -218,15 +231,19 @@ services:
       AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD}
       AUTHENTIK_BOOTSTRAP_EMAIL: ${AUTHENTIK_BOOTSTRAP_EMAIL}
       AUTHENTIK_BOOTSTRAP_USERNAME: ${AUTHENTIK_BOOTSTRAP_USERNAME}
-
+    # Keine Ports veröffentlichen für den Worker
     networks:
       - app_network
 
 volumes:
   db_data:
+    driver: local
   authentik_media:
+    driver: local
   authentik_custom_templates:
+    driver: local
   traefik_acme:
+    driver: local
 
 # Definiere ein explizites Netzwerk für alle Container
 networks:
