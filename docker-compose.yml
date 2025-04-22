@@ -23,8 +23,9 @@ services:
       - --api.insecure=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entryPoint.to=websecure
-      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      # Kommentiere die Umleitung aus, da Cloudflare Zero Trust dies übernimmt
+      # - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      # - --entrypoints.web.http.redirections.entryPoint.scheme=https
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --certificatesresolvers.cloudflare.acme.dnschallenge=true
@@ -33,6 +34,9 @@ services:
       - --certificatesresolvers.cloudflare.acme.email=${EMAIL}
       - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
       - --log.level=DEBUG
+      # Zusätzliche Konfiguration für Cloudflare
+      - --providers.docker.network=internal
+      - --entrypoints.websecure.forwardedHeaders.insecure=true
     environment:
       - CLOUDFLARE_EMAIL=${CF_API_EMAIL}
       - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
@@ -49,9 +53,12 @@ services:
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
       - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      # Bei Cloudflare Zero Trust kann die TLS-Konfiguration anders sein
       - "traefik.http.routers.traefik-dashboard.tls=true"
-      - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
-      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+      # - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth,cloudflare-headers"
+      # Middleware für Cloudflare-Header
+      - "traefik.http.middlewares.cloudflare-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
 
   db:
@@ -122,9 +129,11 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.authentik.rule=Host(`auth.${DOMAIN}`)"
       - "traefik.http.routers.authentik.entrypoints=websecure"
+      # Bei Cloudflare Zero Trust kann die TLS-Konfiguration anders sein
       - "traefik.http.routers.authentik.tls=true"
-      - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+      # - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
       - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+      - "traefik.http.routers.authentik.middlewares=cloudflare-headers"
     networks:
       - internal
 
