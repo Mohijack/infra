@@ -139,7 +139,7 @@ services:
       AUTHENTIK_PORT_HTTPS: 9443
       # Wichtig: Setze die korrekte externe URL
       AUTHENTIK_HOST: auth.${DOMAIN}
-      # Bootstrap-Anmeldedaten für die Ersteinrichtung
+      # Token für API-Zugriffe
       AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_SECRET_KEY}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
       AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
@@ -186,7 +186,7 @@ services:
       AUTHENTIK_REDIS__PORT: 6379
       # Vollständige Datenbank-URL
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      # Bootstrap-Anmeldedaten für die Ersteinrichtung
+
     networks:
       - app_network
 
