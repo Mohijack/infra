@@ -40,10 +40,11 @@ services:
       - traefik-init
     command:
       - --api.dashboard=true
-      # Deaktiviere den unsicheren Modus, da wir das Dashboard über einen Router konfigurieren
-      - --api.insecure=false
+      # Aktiviere den unsicheren Modus für Testzwecke
+      - --api.insecure=true
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
+      - --entrypoints.dashboard.address=:8080
       # HTTP zu HTTPS Umleitung aktivieren
       - --entrypoints.web.http.redirections.entryPoint.to=websecure
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
@@ -68,6 +69,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"  # Direkter Zugriff auf das Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - traefik_acme:/letsencrypt
@@ -81,13 +83,14 @@ services:
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
-      - "traefik.http.routers.dashboard.middlewares=traefik-auth,cloudflare-headers"
+      - "traefik.http.routers.dashboard.middlewares=traefik-auth"
 
       # Middleware für Cloudflare-Header
       - "traefik.http.middlewares.cloudflare-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
 
       # Neues BasicAuth-Middleware mit einfachem Passwort (admin:admin)
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
+      # Dieses Hash entspricht dem Passwort 'admin'
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$2y$$05$$pXxMRQoHDUJRRUFQb3dVR.Ex/4TA0Zkz8RVBBDnZ1tHNtcZC0FnFC"
 
   db:
     image: postgres:15
