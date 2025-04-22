@@ -44,7 +44,7 @@ services:
       - --api.insecure=true
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --entrypoints.dashboard.address=:8080
+      - --entrypoints.dashboard.address=:8081
       # HTTP zu HTTPS Umleitung aktivieren
       - --entrypoints.web.http.redirections.entryPoint.to=websecure
       - --entrypoints.web.http.redirections.entryPoint.scheme=https
@@ -69,7 +69,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Direkter Zugriff auf das Dashboard
+      - "8081:8081"  # Direkter Zugriff auf das Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - traefik_acme:/letsencrypt
@@ -78,12 +78,17 @@ services:
     labels:
       - "traefik.enable=true"
       # Konfiguration für das Dashboard gemäß offizieller Dokumentation
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=websecure"
-      - "traefik.http.routers.dashboard.tls=true"
-      - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
-      - "traefik.http.routers.dashboard.middlewares=traefik-auth"
+      - "traefik.http.routers.dashboard-secure.rule=Host(`traefik.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard-secure.service=api@internal"
+      - "traefik.http.routers.dashboard-secure.entrypoints=websecure"
+      - "traefik.http.routers.dashboard-secure.tls=true"
+      - "traefik.http.routers.dashboard-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.dashboard-secure.middlewares=traefik-auth"
+
+      # Konfiguration für das Dashboard über den unsicheren Port
+      - "traefik.http.routers.dashboard-insecure.rule=Host(`traefik.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard-insecure.service=api@internal"
+      - "traefik.http.routers.dashboard-insecure.entrypoints=dashboard"
 
       # Middleware für Cloudflare-Header
       - "traefik.http.middlewares.cloudflare-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
