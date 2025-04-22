@@ -41,13 +41,14 @@ services:
       add_txt_record() {
           local domain="_acme-challenge.$1"
           local value="$2"
+          local ttl=300
 
           echo "Adding TXT record for $domain with value $value"
 
           # nsupdate verwenden, um den TXT-Eintrag hinzuzufügen
           nsupdate -k /dev/null << NSUPDATE
-      server bind9
-      update add $domain 300 TXT "$value"
+      server bind9 5353
+      update add $domain $ttl TXT "$value"
       send
       NSUPDATE
 
@@ -63,7 +64,7 @@ services:
 
           # nsupdate verwenden, um den TXT-Eintrag zu entfernen
           nsupdate -k /dev/null << NSUPDATE
-      server bind9
+      server bind9 5353
       update delete $domain TXT
       send
       NSUPDATE
@@ -288,8 +289,8 @@ services:
     container_name: bind9
     restart: unless-stopped
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
+      - "5353:53/tcp"
+      - "5353:53/udp"
     volumes:
       - bind9-cache:/var/cache/bind
       - bind9-data:/var/lib/bind
@@ -312,8 +313,11 @@ services:
       EOF
 
       # Erstellen der Zonendatei
+      TTL=86400
+      DOMAIN=${DOMAIN}
+      SERVER_IP=${SERVER_IP}
       cat > /var/lib/bind/db.${DOMAIN} << EOF
-      \$TTL 86400
+      \$TTL ${TTL}
       @   IN  SOA ns1.${DOMAIN}. admin.${DOMAIN}. (
               $(date +%Y%m%d)01  ; Serial
               3600        ; Refresh
