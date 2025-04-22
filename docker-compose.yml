@@ -85,6 +85,8 @@ services:
 
       # Middleware für Cloudflare-Header
       - "traefik.http.middlewares.cloudflare-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+
+      # Neues BasicAuth-Middleware mit einfachem Passwort (admin:admin)
       - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
 
   db:
