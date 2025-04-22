@@ -117,6 +117,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    command: server
     environment:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
       # Explizite Konfiguration für die Datenbankverbindung
@@ -165,6 +166,8 @@ services:
     restart: unless-stopped
     command: worker
     depends_on:
+      authentik:
+        condition: service_started
       db:
         condition: service_healthy
       redis:
