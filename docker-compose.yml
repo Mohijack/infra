@@ -27,12 +27,13 @@ services:
     restart: unless-stopped
     command:
       - --api.dashboard=true
-      - --api.insecure=false
+      - --api.insecure=true
+      - --entrypoints.dashboard.address=:8080
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      # Kommentiere die Umleitung aus, da Cloudflare Zero Trust dies übernimmt
-      # - --entrypoints.web.http.redirections.entryPoint.to=websecure
-      # - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      # HTTP zu HTTPS Umleitung aktivieren
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --certificatesresolvers.cloudflare.acme.dnschallenge=true
@@ -54,6 +55,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"  # Direkter Zugriff auf das Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/acme.json:/letsencrypt/acme.json
@@ -66,8 +68,21 @@ services:
       - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
       # Bei Cloudflare Zero Trust kann die TLS-Konfiguration anders sein
       - "traefik.http.routers.traefik-dashboard.tls=true"
-      # - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
       - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth,cloudflare-headers"
+      # Explizite Konfiguration für das Dashboard
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`) && PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
+      - "traefik.http.routers.dashboard.middlewares=traefik-auth,cloudflare-headers,dashboard-stripprefix"
+      - "traefik.http.middlewares.dashboard-stripprefix.stripprefix.prefixes=/dashboard"
+      # Direkter Zugriff über Port 8080
+      - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.entrypoints=dashboard"
+      - "traefik.http.routers.api.middlewares=traefik-auth"
       # Middleware für Cloudflare-Header
       - "traefik.http.middlewares.cloudflare-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
@@ -158,7 +173,7 @@ services:
       - "traefik.http.routers.authentik.entrypoints=websecure"
       # Bei Cloudflare Zero Trust kann die TLS-Konfiguration anders sein
       - "traefik.http.routers.authentik.tls=true"
-      # - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+      - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
       - "traefik.http.services.authentik.loadbalancer.server.port=9000"
       - "traefik.http.routers.authentik.middlewares=cloudflare-headers"
     networks:

@@ -1,0 +1,29 @@
+# Vorlage für einen neuen Dienst mit TLS-Unterstützung
+# Diese Datei dient als Referenz und sollte nicht direkt verwendet werden.
+# Kopieren Sie die relevanten Teile in Ihre docker-compose.yml-Datei.
+
+services:
+  example-service:
+    image: example/service:latest
+    container_name: example-service
+    restart: unless-stopped
+    environment:
+      - VARIABLE1=value1
+      - VARIABLE2=value2
+    volumes:
+      - example_data:/data
+    networks:
+      - app_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.example.rule=Host(`example.${DOMAIN}`)"
+      - "traefik.http.routers.example.entrypoints=websecure"
+      - "traefik.http.routers.example.tls=true"
+      - "traefik.http.routers.example.tls.certresolver=cloudflare"
+      - "traefik.http.services.example.loadbalancer.server.port=8080"  # Ändern Sie den Port entsprechend
+      - "traefik.http.routers.example.middlewares=cloudflare-headers"
+
+volumes:
+  example_data:
+
+# Hinweis: Das Netzwerk 'app_network' sollte bereits in Ihrer Hauptdatei definiert sein.
