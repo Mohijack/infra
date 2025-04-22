@@ -13,9 +13,13 @@ services:
       - "1053:53/tcp"
     networks:
       - traefik
+    # Hinzufügen von Labels für bessere Kompatibilität mit Portainer
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
 
   traefik:
-    image: traefik:latest
+    image: traefik:v2.10
     container_name: traefik
     restart: unless-stopped
     command:
@@ -81,7 +85,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: authentik-redis
     restart: unless-stopped
     networks:
@@ -93,7 +97,7 @@ services:
       retries: 5
 
   authentik:
-    image: ghcr.io/goauthentik/server:latest
+    image: ghcr.io/goauthentik/server:2023.10.5
     container_name: authentik
     restart: unless-stopped
     depends_on:
@@ -139,7 +143,7 @@ services:
       - traefik
 
   authentik-worker:
-    image: ghcr.io/goauthentik/server:latest
+    image: ghcr.io/goauthentik/server:2023.10.5
     container_name: authentik-worker
     restart: unless-stopped
     command: worker
@@ -167,3 +171,9 @@ volumes:
 networks:
   traefik:
     driver: bridge
+    # Explizite Konfiguration für bessere Kompatibilität mit Portainer
+    # Aber ohne feste IP-Adressen, die Probleme verursachen können
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
