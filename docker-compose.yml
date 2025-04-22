@@ -14,7 +14,7 @@ services:
       - "1053:53/udp"
       - "1053:53/tcp"
     networks:
-      - default
+      - app_network
     # Hinzufügen von Labels für bessere Kompatibilität mit Portainer
     labels:
       - "traefik.enable=true"
@@ -58,7 +58,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/acme.json:/letsencrypt/acme.json
     networks:
-      - default
+      - app_network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN}`)"
@@ -83,7 +83,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
-      - default
+      - app_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -98,7 +98,7 @@ services:
     container_name: authentik-redis
     restart: unless-stopped
     networks:
-      - default
+      - app_network
     # Explizite Ports für Redis, um sicherzustellen, dass es erreichbar ist
     ports:
       - "6379:6379"
@@ -157,7 +157,7 @@ services:
       - "traefik.http.services.authentik.loadbalancer.server.port=9000"
       - "traefik.http.routers.authentik.middlewares=cloudflare-headers"
     networks:
-      - default
+      - app_network
 
   authentik-worker:
     image: ghcr.io/goauthentik/server:2023.8.3
@@ -183,12 +183,14 @@ services:
       # Vollständige Datenbank-URL
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     networks:
-      - default
+      - app_network
 
 volumes:
   db_data:
   authentik_media:
   authentik_custom_templates:
 
-# Verwende das Standard-Netzwerk, das von Portainer erstellt wird
-# Portainer fügt dem Netzwerknamen automatisch ein Präfix hinzu
+# Definiere ein explizites Netzwerk für alle Container
+networks:
+  app_network:
+    driver: bridge
