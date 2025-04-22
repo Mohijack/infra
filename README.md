@@ -27,13 +27,20 @@ SERVER_IP=192.168.120.84
 
 ### 2. Anpassen der DNS-Konfiguration
 
-Passen Sie die DNS-Konfiguration in der `dnsmasq.conf`-Datei an:
+Die DNS-Konfiguration ist bereits in der Docker-Compose-Datei enthalten und verwendet die Umgebungsvariablen aus der `.env`-Datei. Sie können bei Bedarf weitere DNS-Einträge in der `command`-Sektion des DNS-Containers hinzufügen:
 
-```
-# Statische DNS-Einträge für lokale Dienste
-address=/traefik.dasilvafelix.de/192.168.120.84
-address=/auth.dasilvafelix.de/192.168.120.84
-address=/dns.dasilvafelix.de/192.168.120.84
+```yaml
+command: |
+  --log-queries
+  --log-facility=-
+  --cache-size=1000
+  --server=8.8.8.8
+  --server=8.8.4.4
+  --address=/traefik.${DOMAIN}/${SERVER_IP}
+  --address=/auth.${DOMAIN}/${SERVER_IP}
+  --address=/dns.${DOMAIN}/${SERVER_IP}
+  # Fügen Sie hier weitere Einträge hinzu
+  # --address=/neuer-dienst.${DOMAIN}/${SERVER_IP}
 ```
 
 ### 3. Starten des Stacks in Portainer
@@ -41,7 +48,6 @@ address=/dns.dasilvafelix.de/192.168.120.84
 1. Laden Sie die Dateien in Ihr Portainer-Verzeichnis hoch:
    - docker-compose.yml
    - .env
-   - dnsmasq.conf
 
 2. Starten Sie den Stack in Portainer:
    - Gehen Sie zu "Stacks" in Portainer
