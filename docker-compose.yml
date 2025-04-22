@@ -40,7 +40,8 @@ services:
       - traefik-init
     command:
       - --api.dashboard=true
-      - --api.insecure=true
+      # Deaktiviere den unsicheren Modus, da wir das Dashboard über einen Router konfigurieren
+      - --api.insecure=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       # HTTP zu HTTPS Umleitung aktivieren
@@ -74,8 +75,8 @@ services:
       - app_network
     labels:
       - "traefik.enable=true"
-      # Einfache Konfiguration für das Dashboard
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
+      # Konfiguration für das Dashboard gemäß offizieller Dokumentation
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
