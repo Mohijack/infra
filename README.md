@@ -1,6 +1,6 @@
 # Infrastruktur-Stack mit Traefik, Authentik und DNS
 
-Diese Konfiguration ermöglicht die Bereitstellung einer kompletten Infrastruktur mit Traefik als Reverse Proxy, Authentik für die Authentifizierung und dnsmasq für lokale DNS-Auflösung in einer Portainer-Umgebung auf Proxmox.
+Diese Konfiguration ermöglicht die Bereitstellung einer kompletten Infrastruktur mit Traefik als Reverse Proxy, Authentik für die Authentifizierung und einem DNS-Server mit Weboberfläche für lokale DNS-Auflösung in einer Portainer-Umgebung auf Proxmox.
 
 ## Voraussetzungen
 
@@ -27,21 +27,17 @@ SERVER_IP=192.168.120.84
 
 ### 2. Anpassen der DNS-Konfiguration
 
-Die DNS-Konfiguration ist bereits in der Docker-Compose-Datei enthalten und verwendet die Umgebungsvariablen aus der `.env`-Datei. Sie können bei Bedarf weitere DNS-Einträge in der `command`-Sektion des DNS-Containers hinzufügen:
+Die DNS-Konfiguration ist bereits in der Docker-Compose-Datei enthalten und verwendet die Umgebungsvariablen aus der `.env`-Datei. Sie können bei Bedarf weitere DNS-Einträge in der `DNSMASQ_OPTS`-Umgebungsvariable des DNS-Containers hinzufügen:
 
 ```yaml
-command: |
-  --log-queries
-  --log-facility=-
-  --cache-size=1000
-  --server=8.8.8.8
-  --server=8.8.4.4
-  --address=/traefik.${DOMAIN}/${SERVER_IP}
-  --address=/auth.${DOMAIN}/${SERVER_IP}
-  --address=/dns.${DOMAIN}/${SERVER_IP}
-  # Fügen Sie hier weitere Einträge hinzu
-  # --address=/neuer-dienst.${DOMAIN}/${SERVER_IP}
+environment:
+  - TZ=Europe/Berlin
+  - DNSMASQ_OPTS=--log-queries --log-facility=- --cache-size=1000 --server=8.8.8.8 --server=8.8.4.4 --address=/traefik.${DOMAIN}/${SERVER_IP} --address=/auth.${DOMAIN}/${SERVER_IP} --address=/dns.${DOMAIN}/${SERVER_IP}
+  # Fügen Sie hier weitere Optionen hinzu
+  # z.B. --address=/neuer-dienst.${DOMAIN}/${SERVER_IP}
 ```
+
+Der DNS-Server bietet auch eine Weboberfläche, die unter `https://dns.dasilvafelix.de/` erreichbar ist und die Verwaltung der DNS-Einträge ermöglicht.
 
 ### 3. Starten des Stacks in Portainer
 
@@ -56,6 +52,22 @@ command: |
    - Klicken Sie auf "Deploy the stack"
 
 ## Verwendung
+
+### Verfügbare Dienste
+
+Nach dem erfolgreichen Deployment des Stacks stehen folgende Dienste zur Verfügung:
+
+- **Traefik Dashboard**: `https://traefik.dasilvafelix.de/dashboard/`
+  - Zeigt den Status aller Dienste und Routen an
+  - Ermöglicht die Überwachung der Zertifikate
+
+- **Authentik**: `https://auth.dasilvafelix.de/`
+  - Zentraler Authentifizierungsdienst
+  - Anmeldung mit den in der `.env`-Datei konfigurierten Anmeldedaten
+
+- **DNS-Verwaltung**: `https://dns.dasilvafelix.de/`
+  - Weboberfläche zur Verwaltung der DNS-Einträge
+  - Zeigt die aktuellen DNS-Einträge und Logs an
 
 ### Zertifikate für neue Dienste
 

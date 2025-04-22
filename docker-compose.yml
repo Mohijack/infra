@@ -209,25 +209,17 @@ services:
     networks:
       - app_network
 
-  # Einfacher DNS-Server mit dnsmasq
+  # DNS-Server mit Weboberfläche
   dns:
-    image: jpillora/dnsmasq
+    image: jlesage/dnsmasq
     container_name: dns
     restart: unless-stopped
     ports:
       - "5353:53/udp"
+      - "5380:8080"
     environment:
       - TZ=Europe/Berlin
-    # Konfiguration direkt in der Docker-Compose-Datei
-    command: |
-      --log-queries
-      --log-facility=-
-      --cache-size=1000
-      --server=8.8.8.8
-      --server=8.8.4.4
-      --address=/traefik.${DOMAIN}/${SERVER_IP}
-      --address=/auth.${DOMAIN}/${SERVER_IP}
-      --address=/dns.${DOMAIN}/${SERVER_IP}
+      - DNSMASQ_OPTS=--log-queries --log-facility=- --cache-size=1000 --server=8.8.8.8 --server=8.8.4.4 --address=/traefik.${DOMAIN}/${SERVER_IP} --address=/auth.${DOMAIN}/${SERVER_IP} --address=/dns.${DOMAIN}/${SERVER_IP}
     networks:
       - app_network
     labels:
@@ -236,7 +228,7 @@ services:
       - "traefik.http.routers.dns.entrypoints=websecure"
       - "traefik.http.routers.dns.tls=true"
       - "traefik.http.routers.dns.tls.certresolver=cloudflare"
-      - "traefik.http.services.dns.loadbalancer.server.port=8053"
+      - "traefik.http.services.dns.loadbalancer.server.port=8080"
       - "traefik.http.routers.dns.middlewares=secureHeaders,cloudflare-headers"
 volumes:
   db_data:
