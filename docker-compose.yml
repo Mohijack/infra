@@ -38,40 +38,103 @@ services:
     restart: unless-stopped
     depends_on:
       - traefik-init
-    command:
-      # API und Dashboard Konfiguration
-      - --api.dashboard=true
-      - --api.insecure=true  # Für Testzwecke aktiviert
 
-      # Entrypoints Konfiguration
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-
-      # HTTP zu HTTPS Umleitung
-      - --entrypoints.web.http.redirections.entryPoint.to=websecure
-      - --entrypoints.web.http.redirections.entryPoint.scheme=https
-
-      # Provider Konfiguration
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.defaultrule=Host(`{{ normalize .Name }}.${DOMAIN}`)
-
-      # Zertifikate und TLS Konfiguration
-      - --certificatesresolvers.cloudflare.acme.dnschallenge=true
-      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=90
-      - --certificatesresolvers.cloudflare.acme.email=${EMAIL}
-      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
-
-      # Sicherheits- und Weiterleitungskonfiguration
-      - --entrypoints.websecure.forwardedHeaders.insecure=true
-      - --serversTransport.insecureSkipVerify=true
-
-      # Logging
-      - --log.level=INFO
     environment:
+      # Cloudflare-Konfiguration für öffentliche Domains
       - CLOUDFLARE_EMAIL=${CF_API_EMAIL}
       - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      # Konfiguration für lokale Zertifikate mit cert-manager
+      - EXEC_PATH=/dns-update-script.sh
+      - BIND_SERVER=bind9
+      - BIND_KEY_NAME=${BIND_KEY_NAME}
+      - BIND_KEY_SECRET=${BIND_KEY_SECRET}
+      - DOMAIN=${DOMAIN}
+    # DNS-Update-Skript für die DNS-Challenge
+    command: |
+      sh -c '
+      # Erstellen des DNS-Update-Skripts
+      cat > /dns-update-script.sh << "EOF"
+      #!/bin/sh
+
+      # Dieses Skript wird von Traefik für die DNS-Challenge verwendet
+
+      # Funktion zum Hinzufügen eines TXT-Eintrags
+      add_txt_record() {
+          local domain="_acme-challenge.$1"
+          local value="$2"
+
+          echo "Adding TXT record for $domain with value $value"
+
+          # nsupdate verwenden, um den TXT-Eintrag hinzuzufügen
+          nsupdate -k /dev/null << NSUPDATE
+      server bind9
+      update add $domain 300 TXT "$value"
+      send
+      NSUPDATE
+
+          # Warten, bis der Eintrag propagiert ist
+          sleep 10
+      }
+
+      # Funktion zum Entfernen eines TXT-Eintrags
+      delete_txt_record() {
+          local domain="_acme-challenge.$1"
+
+          echo "Deleting TXT record for $domain"
+
+          # nsupdate verwenden, um den TXT-Eintrag zu entfernen
+          nsupdate -k /dev/null << NSUPDATE
+      server bind9
+      update delete $domain TXT
+      send
+      NSUPDATE
+      }
+
+      # Hauptlogik
+      case "$1" in
+          "present")
+              add_txt_record "$2" "$3"
+              ;;
+          "cleanup")
+              delete_txt_record "$2"
+              ;;
+          *)
+              echo "Usage: $0 {present|cleanup} domain [value]"
+              exit 1
+              ;;
+      esac
+
+      exit 0
+      EOF
+
+      # Ausführbar machen
+      chmod +x /dns-update-script.sh
+
+      # Traefik starten
+      exec /entrypoint.sh \
+      --api.dashboard=true \
+      --api.insecure=true \
+      --entrypoints.web.address=:80 \
+      --entrypoints.websecure.address=:443 \
+      --entrypoints.web.http.redirections.entryPoint.to=websecure \
+      --entrypoints.web.http.redirections.entryPoint.scheme=https \
+      --providers.docker=true \
+      --providers.docker.exposedbydefault=false \
+      --providers.docker.defaultrule=Host(`{{ normalize .Name }}.${DOMAIN}`) \
+      --certificatesresolvers.local.acme.dnschallenge=true \
+      --certificatesresolvers.local.acme.dnschallenge.provider=exec \
+      --certificatesresolvers.local.acme.dnschallenge.delaybeforecheck=90 \
+      --certificatesresolvers.local.acme.email=${EMAIL} \
+      --certificatesresolvers.local.acme.storage=/letsencrypt/acme-local.json \
+      --certificatesresolvers.cloudflare.acme.dnschallenge=true \
+      --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare \
+      --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=90 \
+      --certificatesresolvers.cloudflare.acme.email=${EMAIL} \
+      --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json \
+      --entrypoints.websecure.forwardedHeaders.insecure=true \
+      --serversTransport.insecureSkipVerify=true \
+      --log.level=INFO
+      '
     ports:
       - "80:80"
       - "443:443"
@@ -89,7 +152,7 @@ services:
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
-      - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
+      - "traefik.http.routers.dashboard.tls.certresolver=local"
 
       # Wildcard-Zertifikat für alle Subdomains
       - "traefik.http.routers.dashboard.tls.domains[0].main=*.${DOMAIN}"
@@ -201,7 +264,7 @@ services:
       - "traefik.http.routers.authentik.entrypoints=websecure"
       # Bei Cloudflare Zero Trust kann die TLS-Konfiguration anders sein
       - "traefik.http.routers.authentik.tls=true"
-      - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+      - "traefik.http.routers.authentik.tls.certresolver=local"
       - "traefik.http.services.authentik.loadbalancer.server.port=9000"
       - "traefik.http.routers.authentik.middlewares=secureHeaders,cloudflare-headers"
     networks:
@@ -240,6 +303,73 @@ services:
     networks:
       - app_network
 
+
+
+  # Bind9 DNS-Server
+  bind9:
+    image: internetsystemsconsortium/bind9:9.18
+    container_name: bind9
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - bind9-cache:/var/cache/bind
+      - bind9-data:/var/lib/bind
+    command: |
+      bash -c '
+      # Erstellen der named.conf.local-Datei
+      cat > /etc/bind/named.conf.local << EOF
+      // TSIG-Schlüssel für sichere Updates
+      key "${BIND_KEY_NAME}" {
+          algorithm hmac-sha256;
+          secret "${BIND_KEY_SECRET}";
+      };
+
+      // Zone-Definition für die Domain
+      zone "${DOMAIN}" {
+          type master;
+          file "/var/lib/bind/db.${DOMAIN}";
+          allow-update { key "${BIND_KEY_NAME}"; };
+      };
+      EOF
+
+      # Erstellen der Zonendatei
+      cat > /var/lib/bind/db.${DOMAIN} << EOF
+      \$TTL 86400
+      @   IN  SOA ns1.${DOMAIN}. admin.${DOMAIN}. (
+              $(date +%Y%m%d)01  ; Serial
+              3600        ; Refresh
+              1800        ; Retry
+              604800      ; Expire
+              86400       ; Minimum TTL
+      )
+      @       IN  NS      ns1.${DOMAIN}.
+      @       IN  A       ${SERVER_IP}
+      ns1     IN  A       ${SERVER_IP}
+      traefik IN  A       ${SERVER_IP}
+      auth    IN  A       ${SERVER_IP}
+      dns     IN  A       ${SERVER_IP}
+      EOF
+
+      # Starten von Bind9
+      /usr/sbin/named -g -c /etc/bind/named.conf -u bind
+      '
+    environment:
+      - TZ=Europe/Berlin
+    networks:
+      - app_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bind9.rule=Host(`dns.${DOMAIN}`)"
+      - "traefik.http.routers.bind9.entrypoints=websecure"
+      - "traefik.http.routers.bind9.tls=true"
+      - "traefik.http.routers.bind9.tls.certresolver=local"
+      - "traefik.http.services.bind9.loadbalancer.server.port=8080"
+      - "traefik.http.routers.bind9.middlewares=secureHeaders,cloudflare-headers"
+
+
+
 volumes:
   db_data:
     driver: local
@@ -248,6 +378,12 @@ volumes:
   authentik_custom_templates:
     driver: local
   traefik_acme:
+    driver: local
+
+
+  bind9-cache:
+    driver: local
+  bind9-data:
     driver: local
 
 # Definiere ein explizites Netzwerk für alle Container
